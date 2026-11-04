@@ -23,6 +23,7 @@ class Tree:
 	def parent(self):
 		return self.parent_node
 	def children(self):
+        # TODO: Implementar o children
 		raise NotImplementedError()
 	def root_node(self):
 		a = self
@@ -84,8 +85,10 @@ class Tree:
 		self.add_child_node(child)
 		return child
 	def add_child_node(self):
+        # TODO: Implementar a inserção de nós
 		raise NotImplementedError()
 	def delete_child_node(self):
+        # TODO: Implementar deleção de nós
 		raise NotImplementedError()
 	#
 	
@@ -194,6 +197,7 @@ class Proposition:
 		if len(self.children) == 0: return self.empty_str
 		return self.symbol.join( c.child_str() for c in self.children )
 	def evaluate(self, **assignments):
+        # TODO: Implementar valoração
 		raise NotImplementedError()
 	def variables(self):
 		if len(self.children) == 0:
