@@ -4,10 +4,17 @@
 
 ## TREES
 
+def verify_valid(expression):
+	Expansion_tree = Tree(expression.children, expression, None)
+	print(Expansion_tree)
+
 class Tree:
 	def __init__(self, children=None, value=None, parent=None):
 		self.value = value
 		self.parent_node = parent
+		self.list_child = children
+		self.evaluation = False
+	
 		if children is not None:
 			for child in children:
 				if isinstance(child, Tree):
@@ -22,9 +29,11 @@ class Tree:
 	
 	def parent(self):
 		return self.parent_node
+	
 	def children(self):
         # TODO: Implementar o children
-		raise NotImplementedError()
+		return self.list_child
+	
 	def root_node(self):
 		a = self
 		while a.parent() is not None:
@@ -84,9 +93,11 @@ class Tree:
 		child = self.__class__(value=value, parent=self)
 		self.add_child_node(child)
 		return child
-	def add_child_node(self):
+	
+	def add_child_node(self, child):
         # TODO: Implementar a inserção de nós
-		raise NotImplementedError()
+		self.list_child.append(child)
+
 	def delete_child_node(self):
         # TODO: Implementar deleção de nós
 		raise NotImplementedError()
@@ -223,8 +234,9 @@ class Proposition:
 			result_col = '{0: ^{1}}'.format(str(self.evaluate(**r)), formula_len)
 			print('{0}  #  {1}'.format(var_cols, result_col)) 
 		print()
+	#mudar para str(self) depois
 	def to_tree(self):
-		result = ListTree(value=str(self))
+		result = ListTree(value=self)
 		for c in self.children:
 			result.add_child_node(c.to_tree())
 		return result
