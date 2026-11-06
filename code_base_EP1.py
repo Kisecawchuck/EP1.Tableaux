@@ -4,6 +4,56 @@
 
 ## TREES
 
+def verifica_validade(pendentes, valoracao, passos):
+
+    while pendentes:
+        atual,valor  = pendentes.pop()
+        
+        alfa = None
+        beta = None
+
+        if isinstance(atual, Variable):
+            print(valoracao)
+            print(atual.name, valor)
+            if ( valoracao.get(atual.name, valor) != valor ):
+                return None
+            
+            valoracao[atual.name] = valor
+        elif isinstance(atual, Not):
+            pendentes.append((atual.children[0], not(valor)))
+            passos[str(atual)] =  ("Expansão Alfa")
+
+
+        elif ( isinstance(atual, Implies )):
+            a,b = atual.children
+            
+            if valor: beta = [[(a, False), (b, True)]]
+            else: alfa = [(a, True), (b, False)]
+        
+        elif ( isinstance(atual, And)):
+            
+            if valor: alfa = [(c,True) for c in atual.children]
+            else: beta = [[(c, False)] for c in atual.children]
+
+        elif (isinstance(atual, Or)):
+            
+            if valor: beta = [ [(c, True) for c in atual.children ]]
+            else: alfa = [(c, False) for c in atual.children]
+
+        if alfa:
+            pendentes.extend(alfa)
+            passos[str(atual)] = "Expansão Alpha"
+
+        elif beta:
+            for alt in beta:
+                modelo = verifica_validade(pendentes + alt, valoracao, passos)
+                passos[str(atual)] = "Expansão Beta"
+                if modelo: return (modelo, passos)
+
+            return (None, passos)
+    
+    return (valoracao, passos)
+
 def verify_valid(expression):
 	Expansion_tree = Tree(expression.children, expression, None)
 	print(Expansion_tree)
@@ -13,7 +63,6 @@ class Tree:
 		self.value = value
 		self.parent_node = parent
 		self.list_child = children
-		self.evaluation = False
 	
 		if children is not None:
 			for child in children:
@@ -236,7 +285,7 @@ class Proposition:
 		print()
 	#mudar para str(self) depois
 	def to_tree(self):
-		result = ListTree(value=self)
+		result = ListTree(value=str(self))
 		for c in self.children:
 			result.add_child_node(c.to_tree())
 		return result
