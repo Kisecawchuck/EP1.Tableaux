@@ -6,53 +6,57 @@
 
 def verifica_validade(pendentes, valoracao, passos):
 
-    while pendentes:
-        atual,valor  = pendentes.pop()
-        
-        alfa = None
-        beta = None
+	while pendentes:
+		atual,valor  = pendentes.pop()
 
-        if isinstance(atual, Variable):
-            print(valoracao)
-            print(atual.name, valor)
-            if ( valoracao.get(atual.name, valor) != valor ):
-                return None
-            
-            valoracao[atual.name] = valor
-        elif isinstance(atual, Not):
-            pendentes.append((atual.children[0], not(valor)))
-            passos[str(atual)] =  ("Expansão Alfa")
+		alfa = None
+		beta = None
+
+		if isinstance(atual, Variable):
+
+			if ( valoracao.get(atual.name, valor) != valor ):
+				return (None, passos)
+
+			valoracao[atual.name] = valor
+
+		elif isinstance(atual, Not):
+			pendentes.append((atual.children[0], not(valor)))
+			passos[str(atual)] =  ("Expansão Alfa")
 
 
-        elif ( isinstance(atual, Implies )):
-            a,b = atual.children
-            
-            if valor: beta = [[(a, False), (b, True)]]
-            else: alfa = [(a, True), (b, False)]
-        
-        elif ( isinstance(atual, And)):
-            
-            if valor: alfa = [(c,True) for c in atual.children]
-            else: beta = [[(c, False)] for c in atual.children]
+		elif ( isinstance(atual, Implies )):
+			a,b = atual.children
 
-        elif (isinstance(atual, Or)):
-            
-            if valor: beta = [ [(c, True) for c in atual.children ]]
-            else: alfa = [(c, False) for c in atual.children]
+			if valor: beta = [[(a, False)], [(b, True)]]
+			else: alfa = [(a, True), (b, False)]
 
-        if alfa:
-            pendentes.extend(alfa)
-            passos[str(atual)] = "Expansão Alpha"
+		elif ( isinstance(atual, And)):
 
-        elif beta:
-            for alt in beta:
-                modelo = verifica_validade(pendentes + alt, valoracao, passos)
-                passos[str(atual)] = "Expansão Beta"
-                if modelo: return (modelo, passos)
+			if valor: alfa = [(c,True) for c in atual.children]
+			else: beta = [[(c, False)] for c in atual.children]
 
-            return (None, passos)
-    
-    return (valoracao, passos)
+		elif (isinstance(atual, Or)):
+
+			if valor: beta = [ [(c, True) for c in atual.children ]]
+			else: alfa = [(c, False) for c in atual.children]
+
+		if alfa:
+			pendentes.extend(alfa)
+			passos[str(atual)] = "Expansão Alpha"
+
+		elif beta:
+		
+			for alt in beta:
+				modelo, passos = verifica_validade(pendentes + alt, valoracao, passos)
+				passos[str(atual)] = "Expansão Beta"
+				
+				if modelo != None:
+			
+					return (modelo, passos)
+
+			return (None, passos)
+
+	return (valoracao, passos)
 
 def verify_valid(expression):
 	Expansion_tree = Tree(expression.children, expression, None)
