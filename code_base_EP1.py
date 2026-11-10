@@ -18,24 +18,24 @@ def stringRamo(expressoes):
 
 	return str_final
 
-# Usa um fila para avaliar quais são expressões pendentes para expansão.
-# Guardamos nessa fila tuplas da fomra (expressao, valor) que guardam a 
+# Usa um pilha para avaliar quais são expressões pendentes para expansão.
+# Guardamos nessa pilha tuplas da fomra (expressao, valor) que guardam a 
 # expressão a ser expandida com base em valor e a sua valoração,
 # respectivamente.
 
 # Começamos adicionando a expressão a ser validada dentro dessa pilha com o
 # valor de False e então a expandimos com expansões alfa ou beta e guardamos
-# suas subexpressões resultantes da expansão na fila, até que a fila esteja vazia,
+# suas subexpressões resultantes da expansão na pilha, até que a pilha esteja vazia,
 # ou encontremos uma valoração ou um absurdo.
 
 # Caso a idenficarmos que a expressão deve ser expandida com alfa, guardamos 
-# as subfórmulas correspondentes à expansão dentro da fila e continuamos a 
+# as subfórmulas correspondentes à expansão dentro da pilha e continuamos a 
 # execução dentro do loop.
 
 # Caso seja com beta, chamamos recursivamente a função para as duas subexpressões
-# resultantes da expansão beta, adicionado na fila de pendentes de cada chamada 
+# resultantes da expansão beta, adicionado na pilha de pendentes de cada chamada 
 # da função cada expressão individualmente, juntamente com as expressões que já estavam
-# na fila.
+# na pilha.
 
 """
 	Uso:
