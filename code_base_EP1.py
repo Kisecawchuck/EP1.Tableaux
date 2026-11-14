@@ -2,12 +2,135 @@
 # This code has been adapted from: https://bitbucket.org/Andrew-Kay/dcaa/src/master
 # Refer to the Author whenever the code is used
 
-## TREES
+# Junta todos os elementos da forma (expressao, valor), dentro de 
+# expressoes, separados por vírgula.
 
+def stringRamo(expressoes):
+	str_final = ""
+
+	for c in expressoes:
+		exp, valor = c
+
+		if(valor): str_final += str(exp)
+		else: str_final += ("¬( " + str(exp) + " )")
+
+		str_final += ", "
+
+	return str_final
+
+# Usa um pilha para avaliar quais são expressões pendentes para expansão.
+# Guardamos nessa pilha tuplas da fomra (expressao, valor) que guardam a 
+# expressão a ser expandida com base em valor e a sua valoração,
+# respectivamente.
+
+# Começamos adicionando a expressão a ser validada dentro dessa pilha com o
+# valor de False e então a expandimos com expansões alfa ou beta e guardamos
+# suas subexpressões resultantes da expansão na pilha, até que a pilha esteja vazia,
+# ou encontremos uma valoração ou um absurdo.
+
+# Caso a idenficarmos que a expressão deve ser expandida com alfa, guardamos 
+# as subfórmulas correspondentes à expansão dentro da pilha e continuamos a 
+# execução dentro do loop.
+
+# Caso seja com beta, chamamos recursivamente a função para as duas subexpressões
+# resultantes da expansão beta, adicionado na pilha de pendentes de cada chamada 
+# da função cada expressão individualmente, juntamente com as expressões que já estavam
+# na pilha.
+
+"""
+	Uso:
+	pendentes = [(exp, False)]
+	arvore = ListTree()
+	arvore = arvore.add_child(', '.join(str(c[0]) for c in pendentes))
+	resultados = verifica_validade(pendentes,dict(),dict(),arvore)
+"""
+
+def verifica_validade(pendentes, valoracao, passos, arvore):
+	while pendentes:
+
+		atual,valor  = pendentes.pop()
+
+		alfa = None
+		beta = None
+
+		if isinstance(atual, Variable):
+			if ( valoracao.get(atual.name, valor) != valor ):
+				
+				return (None, passos, arvore.root_node())
+
+			valoracao[atual.name] = valor
+		
+		if isinstance(atual, Constant):
+			if atual.value != valor:
+
+				return ( None, passos, arvore.root_node() )
+			
+		elif isinstance(atual, Not):
+
+			pendentes.append((atual.children[0], not(valor)))
+			passos[str(atual)] =  ("Expansão Alfa")
+
+
+		elif ( isinstance(atual, Implies )):
+			a,b = atual.children
+
+			if valor: beta = [[(a, False)], [(b, True)]]
+			else: alfa = [(a, True), (b, False)]
+
+		elif ( isinstance( atual, And )):
+
+			if valor: alfa = [(c,True) for c in atual.children]
+			else: beta = [[(c, False)] for c in atual.children]
+
+		elif (isinstance(atual, Or)):
+
+			if valor: beta = [ [(c, True)] for c in atual.children ]
+			else: alfa = [(c, False) for c in atual.children]
+
+		if alfa:
+
+			alfa_str = ""
+			alfa_str += stringRamo(alfa)
+			alfa_str += stringRamo(pendentes)
+
+			arvore = arvore.add_child(alfa_str)
+
+			pendentes.extend(alfa)
+			passos[str(atual)] = "Expansão Alpha"
+			
+
+		elif beta:
+			passos[str(atual)] = "Expansão Beta"
+			possiveis_modelos = []
+
+			for alt in beta:	
+				str_ramo = ""
+				str_ramo += stringRamo(alt)
+				str_ramo += stringRamo(pendentes)
+				print(str_ramo, pendentes, alt)
+				novo_ramo = arvore.add_child(str_ramo)
+
+				modelo, passos, aux = verifica_validade(pendentes + alt, valoracao, passos, novo_ramo)
+				possiveis_modelos.append(modelo)
+
+			for modelo in possiveis_modelos:
+				if modelo != None:
+					return (modelo, passos, arvore.root_node())
+
+			return (None, passos, arvore.root_node())
+
+	return (valoracao, passos, arvore.root_node())
+
+def verify_valid(expression):
+		raise NotImplementedError()
+
+## TREES
 class Tree:
 	def __init__(self, children=None, value=None, parent=None):
 		self.value = value
 		self.parent_node = parent
+		self.list_child = children
+	
 		if children is not None:
 			for child in children:
 				if isinstance(child, Tree):
@@ -22,9 +145,11 @@ class Tree:
 	
 	def parent(self):
 		return self.parent_node
+	
 	def children(self):
         # TODO: Implementar o children
-		raise NotImplementedError()
+		return self.list_child
+	
 	def root_node(self):
 		a = self
 		while a.parent() is not None:
@@ -84,9 +209,11 @@ class Tree:
 		child = self.__class__(value=value, parent=self)
 		self.add_child_node(child)
 		return child
-	def add_child_node(self):
+	
+	def add_child_node(self, child):
         # TODO: Implementar a inserção de nós
-		raise NotImplementedError()
+		self.list_child.append(child)
+
 	def delete_child_node(self):
         # TODO: Implementar deleção de nós
 		raise NotImplementedError()
@@ -223,6 +350,7 @@ class Proposition:
 			result_col = '{0: ^{1}}'.format(str(self.evaluate(**r)), formula_len)
 			print('{0}  #  {1}'.format(var_cols, result_col)) 
 		print()
+	#mudar para str(self) depois
 	def to_tree(self):
 		result = ListTree(value=str(self))
 		for c in self.children:
