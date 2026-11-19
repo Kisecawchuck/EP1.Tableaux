@@ -16,3 +16,6 @@
 
 # Saída do LaTeX
 *.pdf
+
+# cache de python
+**/__pycache__/
