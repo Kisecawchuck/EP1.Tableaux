@@ -1,4 +1,3 @@
-
 # This code has been adapted from: https://bitbucket.org/Andrew-Kay/dcaa/src/master
 # Refer to the Author whenever the code is used
 
@@ -122,139 +121,139 @@ def verifica_validade(pendentes, valoracao, passos, arvore):
 	return (valoracao, passos, arvore.root_node())
 
 def verify_valid(expression):
-		raise NotImplementedError()
+    return verifica_validade([(expression, False)], dict(), dict(), ListTree().add_child(', '.join(str(expression))))
 
 ## TREES
 class Tree:
-	def __init__(self, children=None, value=None, parent=None):
-		self.value = value
-		self.parent_node = parent
-		self.list_child = children
-	
-		if children is not None:
-			for child in children:
-				if isinstance(child, Tree):
-					child = self.__class__(child.children(), child.value, self)
-					self.add_child_node(child)
-				elif hasattr(child, '__iter__'):
-					child = self.__class__(children=child, parent=self)
-					self.add_child_node(child)
-				else:
-					self.add_child(child)
-	#
-	
-	def parent(self):
-		return self.parent_node
-	
-	def children(self):
-        # TODO: Implementar o children
-		return self.list_child
-	
-	def root_node(self):
-		a = self
-		while a.parent() is not None:
-			a = a.parent()
-		return a
-	def height(self):
-		h = 0
-		a = self
-		while a.parent() is not None:
-			a = self.parent()
-			h += 1
-		return h
-	def ancestors(self):
-		a = self
-		ancestors = [self]
-		while a.parent() is not None:
-			a = a.parent()
-			ancestors.append(a)
-		return ancestors
-	def descendants(self):
-		descendants = [self]
-		for c in self.children():
-			descendants.extend(c.descendants())
-		return descendants
-	def values(self):
-		return [ node.value for node in self.descendants() if node.value is not None ]
-	def is_leaf_node(self):
-		return len(self.children()) == 0
-	def leaf_nodes(self):
-		if self.is_leaf_node():
-			leaf_nodes = [self]
-		else:
-			leaf_nodes = []
-			for c in self.children():
-				leaf_nodes.extend(c.leaf_nodes())
-		return leaf_nodes
-	#
-	
-	def filter(self, predicate):
-		def find_shallowest_descendants(root,node):
-			if node is not root and predicate(node):
-				return [node]
-			else:
-				result = []
-				for c in node.children():
-					result.extend(find_shallowest_descendants(root,c))
-				return result
-		new_root = self.__class__(value=self.value)
-		for c in find_shallowest_descendants(self,self):
-			new_child = c.filter(predicate)
-			new_child.parent_node = new_root
-			new_root.add_child_node(new_child)
-		return new_root
-	#
-	
-	def add_child(self, value=None):
-		child = self.__class__(value=value, parent=self)
-		self.add_child_node(child)
-		return child
-	
-	def add_child_node(self, child):
-        # TODO: Implementar a inserção de nós
-		self.list_child.append(child)
+    def __init__(self, children=[], value=None, parent=None):
+        self.value = value
+        self.parent_node = parent
+        self.list_child = children
 
-	def delete_child_node(self):
+        if children is not None:
+            for child in children:
+                if isinstance(child, Tree):
+                    child = self.__class__(child.children(), child.value, self)
+                    self.add_child_node(child)
+                elif hasattr(child, '__iter__'):
+                    child = self.__class__(children=child, parent=self)
+                    self.add_child_node(child)
+                else:
+                    self.add_child(child)
+    #
+
+    def parent(self):
+        return self.parent_node
+
+    def children(self):
+        # TODO: Implementar o children
+        return self.list_child
+
+    def root_node(self):
+        a = self
+        while a.parent() is not None:
+            a = a.parent()
+        return a
+    def height(self):
+        h = 0
+        a = self
+        while a.parent() is not None:
+            a = self.parent()
+            h += 1
+        return h
+    def ancestors(self):
+        a = self
+        ancestors = [self]
+        while a.parent() is not None:
+            a = a.parent()
+            ancestors.append(a)
+        return ancestors
+    def descendants(self):
+        descendants = [self]
+        for c in self.children():
+            descendants.extend(c.descendants())
+        return descendants
+    def values(self):
+        return [ node.value for node in self.descendants() if node.value is not None ]
+    def is_leaf_node(self):
+        return len(self.children()) == 0
+    def leaf_nodes(self):
+        if self.is_leaf_node():
+            leaf_nodes = [self]
+        else:
+            leaf_nodes = []
+            for c in self.children():
+                leaf_nodes.extend(c.leaf_nodes())
+        return leaf_nodes
+    #
+
+    def filter(self, predicate):
+        def find_shallowest_descendants(root,node):
+            if node is not root and predicate(node):
+                return [node]
+            else:
+                result = []
+                for c in node.children():
+                    result.extend(find_shallowest_descendants(root,c))
+                return result
+        new_root = self.__class__(value=self.value)
+        for c in find_shallowest_descendants(self,self):
+            new_child = c.filter(predicate)
+            new_child.parent_node = new_root
+            new_root.add_child_node(new_child)
+        return new_root
+    #
+
+    def add_child(self, value=None):
+        child = self.__class__(value=value, parent=self)
+        self.add_child_node(child)
+        return child
+
+    def add_child_node(self, child):
+        # TODO: Implementar a inserção de nós
+        self.list_child.append(child)
+
+    def delete_child_node(self):
         # TODO: Implementar deleção de nós
-		raise NotImplementedError()
-	#
-	
-	def __contains__(self, x):
-		return any( x == node.value for node in self.descendants() )
-	def __str__(self):
-		def format_node(node):
-			first_line = '*' if node.value is None else repr(node.value)
-			children = node.children()
-			n = len(children)
-			if n == 0:
-				return [ first_line ]
-			space = ' '*len(first_line)
-			rows = []
-			for i in range(0, n):
-				child_rows = format_node(children[i])
-				if i == 0:
-					rows.append(first_line + ' +-> ' + child_rows[0])
-				else:
-					rows.append(space + ' +-> ' + child_rows[0])
-				prefix = ' |   ' if i < n-1 else '     '
-				rows.extend(space + prefix + cr for cr in child_rows[1:])
-				if i < n-1:
-					rows.append(space + ' |')
-			return rows
-		return '\n'.join(format_node(self))
-	def __repr__(self):
-		params = []
-		children = self.children()
-		if len(children) > 0:
-			params.append(repr(children))
-		if self.value is not None:
-			params.append('value='+repr(self.value))
-		return '{0}({1})'.format(self.__class__.__name__, ', '.join(params))
-	def to_graph(self):
-		from graphs import PredicateGraph
-		def edge_relation(x,y):
-			return y == x.parent() or x == y.parent()
-		return PredicateGraph(self.descendants(), edge_relation)
+        raise NotImplementedError()
+    #
+
+    def __contains__(self, x):
+        return any( x == node.value for node in self.descendants() )
+    def __str__(self):
+        def format_node(node):
+            first_line = '*' if node.value is None else repr(node.value)
+            children = node.children()
+            n = len(children)
+            if n == 0:
+                return [ first_line ]
+            space = ' '*len(first_line)
+            rows = []
+            for i in range(0, n):
+                child_rows = format_node(children[i])
+                if i == 0:
+                    rows.append(first_line + ' +-> ' + child_rows[0])
+                else:
+                    rows.append(space + ' +-> ' + child_rows[0])
+                prefix = ' |   ' if i < n-1 else '     '
+                rows.extend(space + prefix + cr for cr in child_rows[1:])
+                if i < n-1:
+                    rows.append(space + ' |')
+            return rows
+        return '\n'.join(format_node(self))
+    def __repr__(self):
+        params = []
+        children = self.children()
+        if len(children) > 0:
+            params.append(repr(children))
+        if self.value is not None:
+            params.append('value='+repr(self.value))
+        return '{0}({1})'.format(self.__class__.__name__, ', '.join(params))
+    def to_graph(self):
+        from graphs import PredicateGraph
+        def edge_relation(x,y):
+            return y == x.parent() or x == y.parent()
+        return PredicateGraph(self.descendants(), edge_relation)
 #
 class ListTree(Tree):
 	def __init__(self, children=None, value=None, parent=None):
