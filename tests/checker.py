@@ -1,23 +1,23 @@
+from code_base_EP1 import verify_valid, vars
 import unittest
-from code_base_EP1 import verifica_validade, vars, ListTree
 
-P,Q,R = vars('P', 'Q', 'R')
-
-tests = [
-        {
-            'function': verifica_validade,
-            'input': [((P >> Q) >> (~P | Q), False)],
-            'output': None
-        }
-        ]
+P,Q = vars('P', 'Q')
 
 class TestValidade(unittest.TestCase):
-    def test_validade(self):
-        for test in tests:
-            function = test['function']
-        input_val = test['input']
-        expected_output = test['output']
-        actual_output = function(input_val, dict(), dict(), ListTree().add_child(', '.join(str(c[0]) for c in input_val)))
+    def test_validos(self):
+        test_input = (P >> Q) >> (~P | Q)
+        expected_output = None
+        actual_output = verify_valid(test_input)
+        self.assertEqual(expected_output, actual_output[0])
+    def test_satisfazivel(self):
+        test_input = P | Q
+        expected_output = {'P': False, 'Q': False}
+        actual_output = verify_valid(test_input)
+        self.assertEqual(expected_output, actual_output[0])
+    def test_insatisfazivel(self):
+        test_input = P & ~P
+        expected_output = {'P': False}
+        actual_output = verify_valid(test_input)
         self.assertEqual(expected_output, actual_output[0])
 
 if __name__ == '__main__':
