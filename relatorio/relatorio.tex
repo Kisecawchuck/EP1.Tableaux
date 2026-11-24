@@ -11,9 +11,21 @@
 \usepackage{microtype}
 \linespread{1.1}
 
+\usepackage{listings}
+
+\lstset{
+    language=Python,
+    basicstyle=\footnotesize,
+}
+
 \title{MAC0239 --- Introdução à Lógica e Verificação de Programas\\
 	Exercício Programa I}
 \author{
+    Bruna Hellmeister Bugari --- 11223041\\
+    Igor Nascimento Silva --- 17076671\\
+    Kaue Rodrigues --- 17931070\\
+    Lucas Pires da Silva --- 16885060\\
+    Vitor Manoel Oliveira da Silva --- 17933200\\
 }
 \date{\textit{\small{\today}}}
 
@@ -23,10 +35,75 @@
 
 \section{Introdução}
 
+Este Exercício--Programa (EP) consiste na implementação, em Python, de um verificador de validade que procura um contraexemplo por meio da expansão sistemática da fórmula.
+
+A implementação está organizada em dois arquivos principais: \textbf{code\_base\_EP1.py}, que contém a representação das fórmulas e a busca por contraexemplos, e \textbf{tests/checker.py}, que reúne os testes automatizados, escritos com o módulo \lstinline{unittest} da biblioteca padrão do Python. 
+
+O sistema representa fórmulas da lógica proposicional, avalia essas fórmulas sob valorações booleanas e procura um contraexemplo por meio da expansão sistemática da fórmula. Dessa forma, uma fórmula para a qual não é encontrado contraexemplo é considerada válida, enquanto a existência de uma valoração falsificadora demonstra uma não validade.
+
 \section{Métodos}
+
+\subsection{Utilização}
+
+A interface deve ser utilizada a partir de \lstinline{verify_valid}. A função tenta encontrar uma valoração que torna a fórmula falsa e seu valor de retorno é:
+
+\begin{itemize}
+    \item O retorno \lstinline{None} significa que não foi encontrado contraexemplo, ou seja, a fórmula é válida (tautologia).
+    \item Um dicionário como \lstinline|{'P': False, 'Q': False}| é uma valoração que falsifica a fórmula e, portanto, mostra que ela não é válida.
+\end{itemize}
+
+Implementamos testes automatizados que dependem de \lstinline{unittest} e podem ser executados a partir de:
+
+    \lstinline{python -m unittest tests/checker.py}
+
+A forma mais simples de utilizar a biblioteca é importar \lstinline{vars} e \lstinline{verify_valid}, criar variáveis e passar uma fórmula:
+
+\begin{lstlisting}
+
+from code_base_EP1 import verify_valid, vars
+
+P, Q = vars('P', 'Q')
+formula = (P >> Q) >> (~P | Q)
+resultado = verify_valid(formula) 
+print(resultado) # None: sem contraexemplo
+
+\end{lstlisting}
+
+Para uma fórmula não válida, o resultado é uma valoração que a torna falsa:
+
+\begin{lstlisting}
+
+formula = P | Q
+print(verify_valid(formula))
+# {'P': False, 'Q': False}
+
+\end{lstlisting}
+
+A implicação invertida não foi especificada no enunciado e, portanto, não a implementamos.
+
+\subsection{Estratégia de busca de contraexemplos}
+
+% --- Irei explicar sobre o CNF e a estratégia atual aqui --- %
+
+\subsection{Dificuldades encontradas}
+
+Durante a implementação da expansão, foi necessário evitar que as atribuições realizadas em uma tentativa de falsificação contaminassem as tentativas seguintes. Para isso, cada ramificação da busca trabalha com uma cópia da valoração corrente.
+
+A segunda dificuldade é acompanhar a expansão de fórmulas compostas. Uma conjunção e uma disjunção não usam a mesma regra quando o valor desejado muda. Um erro em uma dessas quatro combinações pode inverter o resultado de tautologias e contradições. 
+
+A terceira dificuldade foi controlar a consistência das valorações. A mesma variável pode aparecer em vários pontos da árvore; o algoritmo precisa aceitar repetições com o mesmo valor e fechar o ramo quando encontrar valores conflitantes. 
+
+% --- Talvez essa seção deva ir para a conclusão --- %
 
 \section{Resultados}
 
-\section{Conclusão}
+% --- Fale sobre os testes aqui --- %
 
+\section{Conclusão}
+O programa implementa um verificador de validade proposicional baseado em árvores de fórmulas, uso de pilhas e expansão de ramos. A ideia é começar supondo que a fórmula é falsa e tentar construir uma valoração consistente.\\ 
+
+Se a construção for possível, um dicionário é retornado com um contraexemplo, associando a cada variável uma valoração para aquele contra-exemplo específico; se todos os ramos forem impossíveis, o resultado None indica validade. Um outro dicionário é retornado, o qual associa a cada expressão expandida durante a execução do algoritmo qual foi o tipo de expansão utilizada: Alfa ou Beta. Por fim o algoritmo também retorna uma instãncia do tipo listTree para representação em forma de string da árvore final após todas as expansões.\\
+
+Desenvolvemos no trabalho um suíte de testes capaz de testar e validar o funcionamento dew todas as operações fundamentais do sistema de forma satisfatória: implicação, negação, disjunção, conjunção, atribuição de valores e fechamento de ramos. 
+Com a revisão dos trechos transcritos e a ampliação da suíte de testes, a implementação pode servir como base para um verificador didático de lógica proposicional.
 \end{document}
