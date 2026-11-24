@@ -30,7 +30,6 @@ def NNF(expression):
     precondição: expression é livre de setas.
     poscondição: NNF(expression) retorna a forma NNF de expression.
     """
-    print(expression)
     if isinstance(expression, Variable):
         return expression
     if isinstance(expression, Not) and isinstance(expression.children[0], Not):
@@ -43,6 +42,37 @@ def NNF(expression):
         return (reduce(lambda x, y: x | y, [NNF(~child) for child in expression.children[0].children]))
     if isinstance(expression, Not) and isinstance(expression.children[0], Or):
         return (reduce(lambda x, y: x & y, [NNF(~child) for child in expression.children[0].children]))
+
+    # Se a expressão é do tipo ~P, ela é instância de Not, mas não tem
+    # filhos; 
+    # Retorna ~P para este caso.
+    return expression
+
+def CNF(expression):
+    """
+    precondição: expression é livre de setas e está em NNF.
+    poscondição: CNF(expression) returna a forma CNF de expression.
+    """
+    if isinstance(expression, Variable):
+        return expression
+    if isinstance(expression, And):
+        return (reduce(lambda x, y: x & y, [CNF(child) for child in expression.children]))
+    if isinstance(expression, Or):
+        return (reduce(lambda x, y: DIST(x, y), [CNF(child) for child in expression.children]))
+    return expression
+
+def DIST(alfa, beta):
+    """
+    precondição: alfa,beta estão em CNF.
+    poscondição: DIST(alfa, beta) returna CNF de alfa | beta.
+    """
+    if isinstance(alfa, And):
+        a, b = alfa.children
+        return DIST(a, beta) & DIST(b, beta)
+    if isinstance(beta, And):
+        a, b = beta.children
+        return DIST(alfa, a) & DIST(alfa, b)
+    return alfa | beta
 
 # Junta todos os elementos da forma (expressao, valor), dentro de 
 # expressoes, separados por vírgula.
@@ -87,7 +117,34 @@ def stringRamo(expressoes):
     resultados = verifica_validade(pendentes,dict(),dict(),arvore)
 """
 
-def verifica_validade(pendentes, valoracao, passos, arvore):
+def verifica_validade(expression, model, value):
+    """
+    precondição: expression está na forma CNF.
+    póscondição: retorna None se expression é valida, retorna um modelo
+    para falsicar caso contrário.
+    """
+
+    # Chegamos em uma constante
+    if isinstance(expression, Variable):
+        if (model[expression] != valor):
+            return None
+        model[atual.name] = value
+    if isinstance(expression, Not):
+        if (model[expression.children[0]] == valor):
+            return None
+        model[expression.children[0].name] = value
+
+    # Encontramos um literal
+    if isinstance(expression, And):
+        print(f"Expansão Beta : {child}", (verifica_validade(child, model, False) for child in expression.children))
+        return 
+    # Expansão do literal
+    if isinstance(expression, Or):
+        print("Expansão Alfa: ")
+        return (verifica_validade(child, model, False) for child in expression.children)
+
+    return model
+    """
     while pendentes:
 
         atual,valor  = pendentes.pop()
@@ -162,18 +219,19 @@ def verifica_validade(pendentes, valoracao, passos, arvore):
             return (None, passos, arvore.root_node())
 
     return (valoracao, passos, arvore.root_node())
+    """
 
 def verify_valid(expression):
-    teste = NNF(arrowFree(expression))
-    print(teste)
-    return verifica_validade([(teste, False)], dict(), dict(), ListTree().add_child(', '.join(str(teste))))
+    CNF_expression = CNF(NNF(arrowFree(expression)))
+    print(CNF_expression)
+    return verifica_validade(CNF_expression, dict(), False)
 
 ## TREES
 class Tree:
-    def __init__(self, children=[], value=None, parent=None):
+    def __init__(self, children=None, value=None, parent=None):
         self.value = value
         self.parent_node = parent
-        self.list_child = children
+        self.list_child = []
 
         if children is not None:
             for child in children:
