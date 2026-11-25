@@ -52,17 +52,18 @@ def expandir(pendentes, valoracao, log):
         beta = None
 
         if isinstance(atual, Variable):
-            if (valoracao.get(atual.name, valor) != valor):
+            if valoracao.get(atual.name, valor) != valor:
                 log.append(("Contradição", str(atual)))
                 return None
             valoracao[atual.name] = valor
 
         if isinstance(atual, Constant):
             if atual.value != valor:
+                log.append(("Contradição", str(atual)))
                 return None
 
         elif isinstance(atual, Not):
-            pendentes.append((atual.children[0], not(valor)))
+            pendentes.append((atual.children[0], not valor))
             log.append(("Expansão Alfa", str(atual)))
 
         elif isinstance(atual, Implies):
@@ -87,13 +88,16 @@ def expandir(pendentes, valoracao, log):
             log.append(("Expansão Beta", str(atual)))
             possiveis_modelos = []
 
-            for alt in beta:	
-                modelo = expandir(pendentes + alt, valoracao, log)
-                possiveis_modelos.append(modelo)
-            for modelo in possiveis_modelos:
-                if modelo != None:
-                    return modelo
+            for alt in beta:
+                # não podemos compartilhar entre expanões pois o ramos pode ser 
+                # descartado
+                nova_valoracao = valoracao.copy()
+                novo_log = log.copy()
 
+                modelo = expandir(pendentes + alt, nova_valoracao, novo_log)
+                if modelo is not None:
+                    log[:] = novo_log
+                    return modelo
             return None
 
     return valoracao
