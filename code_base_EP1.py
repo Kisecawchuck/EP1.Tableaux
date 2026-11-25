@@ -23,11 +23,11 @@ def stringRamo(expressoes):
 # respectivamente.
 
 # Começamos adicionando a expressão a ser validada dentro dessa pilha com o
-# valor de False e então a expandimos com expansões alpha ou beta e guardamos
+# valor de False e então a expandimos com expansões alfa ou beta e guardamos
 # suas subexpressões resultantes da expansão na pilha, até que a pilha esteja vazia,
-# ou encontremos uma valoração ou um absurdo.
+# ou encontremos uma valoração ou uma contradição.
 
-# Caso a idenficarmos que a expressão deve ser expandida com alpha, guardamos 
+# Caso a idenficarmos que a expressão deve ser expandida com alfa, guardamos 
 # as subfórmulas correspondentes à expansão dentro da pilha e continuamos a 
 # execução dentro do loop.
 
@@ -38,10 +38,9 @@ def stringRamo(expressoes):
 
 """
     Uso:
-    pendentes = [(exp, False)]
-    arvore = ListTree()
-    arvore = arvore.add_child(', '.join(str(c[0]) for c in pendentes))
-    resultados = expandir(pendentes,dict(),dict(),arvore)
+    pendentes = [(p, True) for p in premissas] + [(conclusao, False)]
+    log = []
+    modelo = expandir(pendentes, {}, log)
 """
 
 def expandir(pendentes, valoracao, log):
@@ -49,68 +48,48 @@ def expandir(pendentes, valoracao, log):
 
         atual,valor  = pendentes.pop()
 
-        alpha = None
+        alfa = None
         beta = None
 
         if isinstance(atual, Variable):
             if (valoracao.get(atual.name, valor) != valor):
-
+                log.append(("Contradição", str(atual)))
                 return None
-
             valoracao[atual.name] = valor
 
         if isinstance(atual, Constant):
             if atual.value != valor:
-
                 return None
 
         elif isinstance(atual, Not):
-
             pendentes.append((atual.children[0], not(valor)))
-            log[str(atual)] =  ("Expansão Alfa")
+            log.append(("Expansão Alfa", str(atual)))
 
-
-        elif ( isinstance(atual, Implies )):
+        elif isinstance(atual, Implies):
             a,b = atual.children
 
             if valor: beta = [[(a, False)], [(b, True)]]
-            else: alpha = [(a, True), (b, False)]
+            else: alfa = [(a, True), (b, False)]
 
-        elif ( isinstance( atual, And )):
-
-            if valor: alpha = [(c,True) for c in atual.children]
+        elif isinstance(atual, And):
+            if valor: alfa = [(c,True) for c in atual.children]
             else: beta = [[(c, False)] for c in atual.children]
 
-        elif (isinstance(atual, Or)):
-
+        elif isinstance(atual, Or):
             if valor: beta = [[(c, True)] for c in atual.children]
-            else: alpha = [(c, False) for c in atual.children]
+            else: alfa = [(c, False) for c in atual.children]
 
-        if alpha:
-
-            alpha_str = ""
-            alpha_str += stringRamo(alpha)
-            alpha_str += stringRamo(pendentes)
-
-            # arvore = arvore.add_child(alpha_str)
-
-            pendentes.extend(alpha)
-            log[str(atual)] = "Expansão Alpha"
-
+        if alfa:
+            pendentes.extend(alfa)
+            log.append(("Expansão Alfa", str(atual)))
 
         elif beta:
-            log[str(atual)] = "Expansão Beta"
+            log.append(("Expansão Beta", str(atual)))
             possiveis_modelos = []
 
             for alt in beta:	
-                str_ramo = ""
-                str_ramo += stringRamo(alt)
-                str_ramo += stringRamo(pendentes)
-                # novo_ramo = arvore.add_child(str_ramo)
-
                 modelo = expandir(pendentes + alt, valoracao, log)
                 possiveis_modelos.append(modelo)
-
             for modelo in possiveis_modelos:
                 if modelo != None:
                     return modelo
@@ -121,7 +100,7 @@ def expandir(pendentes, valoracao, log):
 
 def verificar_sequente(premissas, conclusao):
     pendentes = [(p, True) for p in premissas] + [(conclusao, False)]
-    log = {}
+    log = []
     modelo = expandir(pendentes, {}, log)
     return {
             "valido": modelo is None,
@@ -136,8 +115,8 @@ def mostra_resultado(r):
         print("Sequente não válido. Contraexemplo: ", r["contraexemplo"])
     print("Regras aplicadas: ")
     print(r["regras"])
-    for regra in r["regras"]:
-        print(f"(\t{regra}, {r["regras"][regra]})")
+    for regra, formula in r["regras"]:
+        print(f"(\t{regra}, {formula})")
 
 
 ## TREES
