@@ -35,75 +35,67 @@
 
 \section{Introdução}
 
-Este Exercício--Programa (EP) consiste na implementação, em Python, de um verificador de validade que procura um contraexemplo por meio da expansão sistemática da fórmula.
+Organizamos o EP (Exercício--Programa) em dois arquivos principais:\\ \textbf{code\_base\_EP1.py} e \textbf{tests/checker.py}. O sistema representa fórmulas da lógica proposicional, avalia essas fórmulas sob valorações booleanas e verifica sua validade por meio da busca sistemática por contraexemplos.
 
-A implementação está organizada em dois arquivos principais: \textbf{code\_base\_EP1.py}, que contém a representação das fórmulas e a busca por contraexemplos, e \textbf{tests/checker.py}, que reúne os testes automatizados, escritos com o módulo \lstinline{unittest} da biblioteca padrão do Python. 
-
-O sistema representa fórmulas da lógica proposicional, avalia essas fórmulas sob valorações booleanas e procura um contraexemplo por meio da expansão sistemática da fórmula. Dessa forma, uma fórmula para a qual não é encontrado contraexemplo é considerada válida, enquanto a existência de uma valoração falsificadora demonstra uma não validade.
+Além da verificação de fórmulas isoladas, o programa permite analisar sequentes da lógica proposicional, por meio da função \texttt{verificar\_sequente}, que verifica se a conclusão decorre logicamente das premissas. Os resultados são apresentados pela função \texttt{mostra\_resultado}, que informa se o sequente é válido ou, caso contrário, exibe uma valoração que serve como contraexemplo.
 
 \section{Métodos}
 
+\subsection{Estruturas e estratégias}
+
+A verificação de sequentes é realizada pela função \texttt{verificar\_sequente}, que recebe uma lista de premissas e uma conclusão. A função verifica se a conclusão decorre logicamente das premissas, retornando \texttt{None} caso o sequente seja válido ou um dicionário representando uma valoração que invalida o sequente caso contrário.
+
+Para apresentar os resultados, utiliza-se a função \texttt{mostra\_resultado}, que recebe o resultado de \texttt{verificar\_sequente} e informa se o sequente é válido. Caso seja inválido, também apresenta a valoração encontrada como contraexemplo.
+
 \subsection{Utilização}
 
-A interface deve ser utilizada a partir de \lstinline{verify_valid}. A função tenta encontrar uma valoração que torna a fórmula falsa e seu valor de retorno é:
+O arquivo principal do projeto é \texttt{code\_base\_EP1.py}, que contém as estruturas para representação das fórmulas e as funções responsáveis pela verificação de validade.
 
-\begin{itemize}
-    \item O retorno \lstinline{None} significa que não foi encontrado contraexemplo, ou seja, a fórmula é válida (tautologia).
-    \item Um dicionário como \lstinline|{'P': False, 'Q': False}| é uma valoração que falsifica a fórmula e, portanto, mostra que ela não é válida.
-\end{itemize}
+Para verificar um sequente, deve-se construir suas premissas e conclusão utilizando as operações lógicas disponibilizadas pelo programa. Em seguida, basta chamar \texttt{verificar\_sequente} e passar seu retorno para \texttt{mostra\_resultado}.
 
-Implementamos testes automatizados que dependem de \lstinline{unittest} e podem ser executados a partir de:
+e.g.:
+\begin{verbatim}
 
-    \lstinline{python -m unittest tests/checker.py}
-
-A forma mais simples de utilizar a biblioteca é importar \lstinline{vars} e \lstinline{verify_valid}, criar variáveis e passar uma fórmula:
-
-\begin{lstlisting}
-
-from code_base_EP1 import verify_valid, vars
-
+from code_base_EP1 import *
 P, Q = vars('P', 'Q')
-formula = (P >> Q) >> (~P | Q)
-resultado = verify_valid(formula) 
-print(resultado) # None: sem contraexemplo
 
-\end{lstlisting}
+mostra_resultado(verificar_sequente([P >> Q, P], Q))
 
-Para uma fórmula não válida, o resultado é uma valoração que a torna falsa:
+\end{verbatim}
 
-\begin{lstlisting}
+Nesse exemplo, o programa verifica a validade do sequente
+$P \to Q, P \vdash Q$, que é válido.
 
-formula = P | Q
-print(verify_valid(formula))
-# {'P': False, 'Q': False}
 
-\end{lstlisting}
+\subsection{Execução de testes}
 
-A implicação invertida não foi especificada no enunciado e, portanto, não a implementamos.
+Os testes automatizados estão organizados no arquivo \texttt{tests/checker.py}. Eles verificam o comportamento das funcionalidades implementadas, incluindo a verificação de validade.
 
-\subsection{Estratégia de busca de contraexemplos}
+Para executar os testes, deve-se acessar o diretório raiz do projeto e executar o seguinte comando no terminal:
 
-% --- Irei explicar sobre o CNF e a estratégia atual aqui --- %
+\begin{verbatim}
+    python -m unittest tests/checker.py
+\end{verbatim}
+
+O módulo \texttt{unittest} executa os casos de teste definidos no arquivo e informa quais foram aprovados ou se ocorreram falhas.
 
 \subsection{Dificuldades encontradas}
 
-Durante a implementação da expansão, foi necessário evitar que as atribuições realizadas em uma tentativa de falsificação contaminassem as tentativas seguintes. Para isso, cada ramificação da busca trabalha com uma cópia da valoração corrente.
+Durante a implementação da expansão, foi necessário evitar que as atribuições realizadas em uma tentativa de falsificação contaminassem as tentativas seguintes. Para isso, cada ramificação da busca trabalha com uma cópia da valoração e log corrente.
 
 A segunda dificuldade é acompanhar a expansão de fórmulas compostas. Uma conjunção e uma disjunção não usam a mesma regra quando o valor desejado muda. Um erro em uma dessas quatro combinações pode inverter o resultado de tautologias e contradições. 
 
 A terceira dificuldade foi controlar a consistência das valorações. A mesma variável pode aparecer em vários pontos da árvore; o algoritmo precisa aceitar repetições com o mesmo valor e fechar o ramo quando encontrar valores conflitantes. 
-
-% --- Talvez essa seção deva ir para a conclusão --- %
 
 \section{Resultados}
 
 % --- Fale sobre os testes aqui --- %
 
 \section{Conclusão}
-O programa implementa um verificador de validade proposicional baseado em árvores de fórmulas, uso de pilhas e expansão de ramos. A ideia é começar supondo que a fórmula é falsa e tentar construir uma valoração consistente.\\ 
+O programa implementa um verificador de validade proposicional baseado em árvores de fórmulas, uso de pilhas e expansão de ramos. A ideia é começar supondo que a fórmula é falsa e tentar construir uma valoração consistente.
 
-Se a construção for possível, um dicionário é retornado com um contraexemplo, associando a cada variável uma valoração para aquele contra-exemplo específico; se todos os ramos forem impossíveis, o resultado None indica validade. Um outro dicionário é retornado, o qual associa a cada expressão expandida durante a execução do algoritmo qual foi o tipo de expansão utilizada: Alfa ou Beta. Por fim o algoritmo também retorna uma instãncia do tipo listTree para representação em forma de string da árvore final após todas as expansões.\\
+Se a construção for possível, um objeto é retornado com um contraexemplo, associando a cada variável uma valoração para aquele contra-exemplo específico; se todos os ramos forem impossíveis, o resultado None indica validade. Uma outra lista é retornada, a qual associa a cada expressão expandida durante a execução do algoritmo qual foi o tipo de expansão utilizada: Alfa ou Beta. Por fim o algoritmo também retorna uma instãncia do tipo listTree para representação em forma de string da árvore final após todas as expansões.
 
-Desenvolvemos no trabalho um suíte de testes capaz de testar e validar o funcionamento dew todas as operações fundamentais do sistema de forma satisfatória: implicação, negação, disjunção, conjunção, atribuição de valores e fechamento de ramos. 
+Desenvolvemos no trabalho um suíte de testes capaz de testar e validar o funcionamento de todas as operações fundamentais do sistema de forma satisfatória: implicação, negação, disjunção, conjunção, atribuição de valores e fechamento de ramos. 
 Com a revisão dos trechos transcritos e a ampliação da suíte de testes, a implementação pode servir como base para um verificador didático de lógica proposicional.
 \end{document}
