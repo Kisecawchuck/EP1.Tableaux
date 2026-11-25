@@ -4,16 +4,16 @@ Script de provas de validade de um sequente usando a técnica de tableaux semân
 
 ## Uso
 
-- `verify_valid(expression)`: Recebe um argumento `Proposition`, retorna uma tripla com a primeira entrada sendo a valoração que falsifica a expressão, a segunda sendo os passos do Tableaux e a terceira a árvore de decisão.
+- `verificar_sequente(premissas, conclusao)`: Recebe uma lista de premissas e uma conclusão. Retorna um objeto com entradas `valido: bool` se o sequente é válido, `contraexemplo: {}` uma valoração que falsifica a expressão (se existir), e `regras: []` os passos da árvore de decisão do tableau.
+
+- `mostra_resultado(r)`: Recebe o objeto de retorno de `verificar_sequente`, imprime se o sequente é válido, o contraexemplo se não for válido e os passos da árvore de decisão.
 
 ```python
 from code_base_EP1 import *
 
 P, Q = vars('P', 'Q') # define as variáveis
 
-verify_valid(P | ~P) # 'None', a expressão é válida
-verify_valid(P & ~P) # ['P': False], a expressão é falsificável
-verify_valid((P >> Q) >> (~P | Q)) # 'None', a expressão é válida
+mostra_resultado(verificar_sequente([P >> Q, P], Q)) 'True', sequente válido
 ```
 
 ## Testando
