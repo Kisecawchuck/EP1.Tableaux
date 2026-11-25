@@ -1,79 +1,6 @@
 # This code has been adapted from: https://bitbucket.org/Andrew-Kay/dcaa/src/master
 # Refer to the Author whenever the code is used
 
-from functools import reduce
-
-
-def arrowFree(expression):
-    """
-    precondição: expression é uma fórmula.
-    poscondição: arrowFree(expresssion) retorna uma fórmula sem setas
-    (implicação, sse) equivalente a expression.
-    """
-    if isinstance(expression, Variable):
-        return expression
-    if isinstance(expression, Not):
-        return (~arrowFree(expression.children[0]))
-    if isinstance(expression, And):
-        return (reduce(lambda x, y: x & y, [arrowFree(child) for child in expression.children]))
-    if isinstance(expression, Or):
-        return (reduce(lambda x, y: x | y, [arrowFree(child) for child in expression.children]))
-    if isinstance(expression, Implies):
-        a, b = expression.children
-        return (arrowFree(~a | b))
-    if isinstance(expression, Iff):
-        a, b = expression.children
-        return (arrowFree((~a | b) & (a | ~b)))
-
-def NNF(expression):
-    """
-    precondição: expression é livre de setas.
-    poscondição: NNF(expression) retorna a forma NNF de expression.
-    """
-    if isinstance(expression, Variable):
-        return expression
-    if isinstance(expression, Not) and isinstance(expression.children[0], Not):
-        return NNF(expression.children[0].children[0])
-    if isinstance(expression, And):
-        return (reduce(lambda x, y: x & y, [NNF(child) for child in expression.children]))
-    if isinstance(expression, Or):
-        return (reduce(lambda x, y: x | y, [NNF(child) for child in expression.children]))
-    if isinstance(expression, Not) and isinstance(expression.children[0], And):
-        return (reduce(lambda x, y: x | y, [NNF(~child) for child in expression.children[0].children]))
-    if isinstance(expression, Not) and isinstance(expression.children[0], Or):
-        return (reduce(lambda x, y: x & y, [NNF(~child) for child in expression.children[0].children]))
-
-    # Se a expressão é do tipo ~P, ela é instância de Not, mas não tem
-    # filhos; 
-    # Retorna ~P para este caso.
-    return expression
-
-def CNF(expression):
-    """
-    precondição: expression é livre de setas e está em NNF.
-    poscondição: CNF(expression) returna a forma CNF de expression.
-    """
-    if isinstance(expression, Variable):
-        return expression
-    if isinstance(expression, And):
-        return (reduce(lambda x, y: x & y, [CNF(child) for child in expression.children]))
-    if isinstance(expression, Or):
-        return (reduce(lambda x, y: DIST(x, y), [CNF(child) for child in expression.children]))
-    return expression
-
-def DIST(alfa, beta):
-    """
-    precondição: alfa,beta estão em CNF.
-    poscondição: DIST(alfa, beta) returna CNF de alfa | beta.
-    """
-    if isinstance(alfa, And):
-        a, b = alfa.children
-        return DIST(a, beta) & DIST(b, beta)
-    if isinstance(beta, And):
-        a, b = beta.children
-        return DIST(alfa, a) & DIST(alfa, b)
-    return alfa | beta
-
 # Junta todos os elementos da forma (expressao, valor), dentro de 
 # expressoes, separados por vírgula.
 
@@ -96,11 +23,11 @@ def stringRamo(expressoes):
 # respectivamente.
 
 # Começamos adicionando a expressão a ser validada dentro dessa pilha com o
-# valor de False e então a expandimos com expansões alfa ou beta e guardamos
+# valor de False e então a expandimos com expansões alpha ou beta e guardamos
 # suas subexpressões resultantes da expansão na pilha, até que a pilha esteja vazia,
 # ou encontremos uma valoração ou um absurdo.
 
-# Caso a idenficarmos que a expressão deve ser expandida com alfa, guardamos 
+# Caso a idenficarmos que a expressão deve ser expandida com alpha, guardamos 
 # as subfórmulas correspondentes à expansão dentro da pilha e continuamos a 
 # execução dentro do loop.
 
@@ -114,117 +41,104 @@ def stringRamo(expressoes):
     pendentes = [(exp, False)]
     arvore = ListTree()
     arvore = arvore.add_child(', '.join(str(c[0]) for c in pendentes))
-    resultados = verifica_validade(pendentes,dict(),dict(),arvore)
+    resultados = expandir(pendentes,dict(),dict(),arvore)
 """
 
-def verifica_validade(expression, model, value):
-    """
-    precondição: expression está na forma CNF.
-    póscondição: retorna None se expression é valida, retorna um modelo
-    para falsicar caso contrário.
-    """
-
-    # Chegamos em uma constante
-    if isinstance(expression, Variable):
-        if (model[expression] != valor):
-            return None
-        model[atual.name] = value
-    if isinstance(expression, Not):
-        if (model[expression.children[0]] == valor):
-            return None
-        model[expression.children[0].name] = value
-
-    # Encontramos um literal
-    if isinstance(expression, And):
-        print(f"Expansão Beta : {child}", (verifica_validade(child, model, False) for child in expression.children))
-        return 
-    # Expansão do literal
-    if isinstance(expression, Or):
-        print("Expansão Alfa: ")
-        return (verifica_validade(child, model, False) for child in expression.children)
-
-    return model
-    """
+def expandir(pendentes, valoracao, log):
     while pendentes:
 
         atual,valor  = pendentes.pop()
 
-        alfa = None
+        alpha = None
         beta = None
 
         if isinstance(atual, Variable):
-            if ( valoracao.get(atual.name, valor) != valor ):
+            if (valoracao.get(atual.name, valor) != valor):
 
-                return (None, passos, arvore.root_node())
+                return None
 
             valoracao[atual.name] = valor
 
         if isinstance(atual, Constant):
             if atual.value != valor:
 
-                return ( None, passos, arvore.root_node() )
+                return None
 
         elif isinstance(atual, Not):
 
             pendentes.append((atual.children[0], not(valor)))
-            passos[str(atual)] =  ("Expansão Alfa")
+            log[str(atual)] =  ("Expansão Alfa")
 
 
         elif ( isinstance(atual, Implies )):
             a,b = atual.children
 
             if valor: beta = [[(a, False)], [(b, True)]]
-            else: alfa = [(a, True), (b, False)]
+            else: alpha = [(a, True), (b, False)]
 
         elif ( isinstance( atual, And )):
 
-            if valor: alfa = [(c,True) for c in atual.children]
+            if valor: alpha = [(c,True) for c in atual.children]
             else: beta = [[(c, False)] for c in atual.children]
 
         elif (isinstance(atual, Or)):
 
-            if valor: beta = [ [(c, True)] for c in atual.children ]
-            else: alfa = [(c, False) for c in atual.children]
+            if valor: beta = [[(c, True)] for c in atual.children]
+            else: alpha = [(c, False) for c in atual.children]
 
-        if alfa:
+        if alpha:
 
-            alfa_str = ""
-            alfa_str += stringRamo(alfa)
-            alfa_str += stringRamo(pendentes)
+            alpha_str = ""
+            alpha_str += stringRamo(alpha)
+            alpha_str += stringRamo(pendentes)
 
-            arvore = arvore.add_child(alfa_str)
+            # arvore = arvore.add_child(alpha_str)
 
-            pendentes.extend(alfa)
-            passos[str(atual)] = "Expansão Alpha"
+            pendentes.extend(alpha)
+            log[str(atual)] = "Expansão Alpha"
 
 
         elif beta:
-            passos[str(atual)] = "Expansão Beta"
+            log[str(atual)] = "Expansão Beta"
             possiveis_modelos = []
 
             for alt in beta:	
                 str_ramo = ""
                 str_ramo += stringRamo(alt)
                 str_ramo += stringRamo(pendentes)
-                print(str_ramo, pendentes, alt)
-                novo_ramo = arvore.add_child(str_ramo)
+                # novo_ramo = arvore.add_child(str_ramo)
 
-                modelo, passos, aux = verifica_validade(pendentes + alt, valoracao, passos, novo_ramo)
+                modelo = expandir(pendentes + alt, valoracao, log)
                 possiveis_modelos.append(modelo)
 
             for modelo in possiveis_modelos:
                 if modelo != None:
-                    return (modelo, passos, arvore.root_node())
+                    return modelo
 
-            return (None, passos, arvore.root_node())
+            return None
 
-    return (valoracao, passos, arvore.root_node())
-    """
+    return valoracao
 
-def verify_valid(expression):
-    CNF_expression = CNF(NNF(arrowFree(expression)))
-    print(CNF_expression)
-    return verifica_validade(CNF_expression, dict(), False)
+def verificar_sequente(premissas, conclusao):
+    pendentes = [(p, True) for p in premissas] + [(conclusao, False)]
+    log = {}
+    modelo = expandir(pendentes, {}, log)
+    return {
+            "valido": modelo is None,
+            "contraexemplo": modelo,
+            "regras": log,
+    }
+
+def mostra_resultado(r):
+    if r["valido"]:
+        print("Sequente válido")
+    else:
+        print("Sequente não válido. Contraexemplo: ", r["contraexemplo"])
+    print("Regras aplicadas: ")
+    print(r["regras"])
+    for regra in r["regras"]:
+        print(f"(\t{regra}, {r["regras"][regra]})")
+
 
 ## TREES
 class Tree:
