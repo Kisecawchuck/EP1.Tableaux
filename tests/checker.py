@@ -11,6 +11,7 @@ class TestValidade(unittest.TestCase):
                 )
         expected_output = True # expressão é válida
         actual_output = verificar_sequente(test_input.premises, test_input.conclusion)
+        mostra_resultado(actual_output)
         self.assertEqual(expected_output, actual_output["valido"])
 
     def test_modus_tollens(self):
@@ -20,6 +21,7 @@ class TestValidade(unittest.TestCase):
                 )
         expected_output = True
         actual_output = verificar_sequente(test_input.premises, test_input.conclusion)
+        mostra_resultado(actual_output)
         self.assertEqual(expected_output, actual_output["valido"])
 
     def test_disjunctive_syllogism(self):
@@ -29,6 +31,7 @@ class TestValidade(unittest.TestCase):
                 )
         expected_output = True
         actual_output = verificar_sequente(test_input.premises, test_input.conclusion)
+        mostra_resultado(actual_output)
         self.assertEqual(expected_output, actual_output["valido"])
 
     def test_hypothetical_syllogism(self):
@@ -38,6 +41,7 @@ class TestValidade(unittest.TestCase):
                 )
         expected_output = False
         actual_output = verificar_sequente(test_input.premises, test_input.conclusion)
+        mostra_resultado(actual_output)
         self.assertEqual(expected_output, actual_output["valido"])
 
     def test_non_sequitur(self):
@@ -47,8 +51,18 @@ class TestValidade(unittest.TestCase):
                 )
         expected_output = False
         actual_output = verificar_sequente(test_input.premises, test_input.conclusion)
+        mostra_resultado(actual_output)
         self.assertEqual(expected_output, actual_output["valido"])
 
+    def test_affirming_the_consequent(self):
+        test_input = ArgumentForm(
+                P >> Q, Q,    #premises
+                conclusion = P
+                )
+        expected_output = False
+        actual_output = verificar_sequente(test_input.premises, test_input.conclusion)
+        mostra_resultado(actual_output)
+        self.assertEqual(expected_output, actual_output["valido"])
 
 
 if __name__ == '__main__':
