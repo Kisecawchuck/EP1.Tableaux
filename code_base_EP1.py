@@ -5,17 +5,17 @@
 # expressoes, separados por vírgula.
 
 def stringRamo(expressoes):
-	str_final = ""
+    str_final = ""
 
-	for c in expressoes:
-		exp, valor = c
+    for c in expressoes:
+        exp, valor = c
 
-		if(valor): str_final += str(exp)
-		else: str_final += ("¬( " + str(exp) + " )")
+        if(valor): str_final += str(exp)
+        else: str_final += ("¬( " + str(exp) + " )")
 
-		str_final += ", "
+        str_final += ", "
 
-	return str_final
+    return str_final
 
 # Usa um pilha para avaliar quais são expressões pendentes para expansão.
 # Guardamos nessa pilha tuplas da fomra (expressao, valor) que guardam a 
@@ -25,7 +25,7 @@ def stringRamo(expressoes):
 # Começamos adicionando a expressão a ser validada dentro dessa pilha com o
 # valor de False e então a expandimos com expansões alfa ou beta e guardamos
 # suas subexpressões resultantes da expansão na pilha, até que a pilha esteja vazia,
-# ou encontremos uma valoração ou um absurdo.
+# ou encontremos uma valoração ou uma contradição.
 
 # Caso a idenficarmos que a expressão deve ser expandida com alfa, guardamos 
 # as subfórmulas correspondentes à expansão dentro da pilha e continuamos a 
@@ -37,98 +37,94 @@ def stringRamo(expressoes):
 # na pilha.
 
 """
-	Uso:
-	pendentes = [(exp, False)]
-	arvore = ListTree()
-	arvore = arvore.add_child(', '.join(str(c[0]) for c in pendentes))
-	resultados = verifica_validade(pendentes,dict(),dict(),arvore)
+    Uso:
+    pendentes = [(p, True) for p in premissas] + [(conclusao, False)]
+    log = []
+    modelo = expandir(pendentes, {}, log)
 """
 
-def verifica_validade(pendentes, valoracao, passos, arvore):
-	while pendentes:
+def expandir(pendentes, valoracao, log):
+    while pendentes:
 
-		atual,valor  = pendentes.pop()
+        atual,valor  = pendentes.pop()
 
-		alfa = None
-		beta = None
+        alfa = None
+        beta = None
 
-		if isinstance(atual, Variable):
-			if ( valoracao.get(atual.name, valor) != valor ):
-				
-				return (None, passos, arvore.root_node())
+        if isinstance(atual, Variable):
+            if (valoracao.get(atual.name, valor) != valor):
+                log.append(("Contradição", str(atual)))
+                return None
+            valoracao[atual.name] = valor
 
-			valoracao[atual.name] = valor
-		
-		if isinstance(atual, Constant):
-			if atual.value != valor:
+        if isinstance(atual, Constant):
+            if atual.value != valor:
+                return None
 
-				return ( None, passos, arvore.root_node() )
-			
-		elif isinstance(atual, Not):
+        elif isinstance(atual, Not):
+            pendentes.append((atual.children[0], not(valor)))
+            log.append(("Expansão Alfa", str(atual)))
 
-			pendentes.append((atual.children[0], not(valor)))
-			passos[str(atual)] =  ("Expansão Alfa")
+        elif isinstance(atual, Implies):
+            a,b = atual.children
 
+            if valor: beta = [[(a, False)], [(b, True)]]
+            else: alfa = [(a, True), (b, False)]
 
-		elif ( isinstance(atual, Implies )):
-			a,b = atual.children
+        elif isinstance(atual, And):
+            if valor: alfa = [(c,True) for c in atual.children]
+            else: beta = [[(c, False)] for c in atual.children]
 
-			if valor: beta = [[(a, False)], [(b, True)]]
-			else: alfa = [(a, True), (b, False)]
+        elif isinstance(atual, Or):
+            if valor: beta = [[(c, True)] for c in atual.children]
+            else: alfa = [(c, False) for c in atual.children]
 
-		elif ( isinstance( atual, And )):
+        if alfa:
+            pendentes.extend(alfa)
+            log.append(("Expansão Alfa", str(atual)))
 
-			if valor: alfa = [(c,True) for c in atual.children]
-			else: beta = [[(c, False)] for c in atual.children]
+        elif beta:
+            log.append(("Expansão Beta", str(atual)))
+            possiveis_modelos = []
 
-		elif (isinstance(atual, Or)):
+            for alt in beta:	
+                modelo = expandir(pendentes + alt, valoracao, log)
+                possiveis_modelos.append(modelo)
+            for modelo in possiveis_modelos:
+                if modelo != None:
+                    return modelo
 
-			if valor: beta = [ [(c, True)] for c in atual.children ]
-			else: alfa = [(c, False) for c in atual.children]
+            return None
 
-		if alfa:
+    return valoracao
 
-			alfa_str = ""
-			alfa_str += stringRamo(alfa)
-			alfa_str += stringRamo(pendentes)
+def verificar_sequente(premissas, conclusao):
+    pendentes = [(p, True) for p in premissas] + [(conclusao, False)]
+    log = []
+    modelo = expandir(pendentes, {}, log)
+    return {
+            "valido": modelo is None,
+            "contraexemplo": modelo,
+            "regras": log,
+    }
 
-			arvore = arvore.add_child(alfa_str)
+def mostra_resultado(r):
+    if r["valido"]:
+        print("Sequente válido")
+    else:
+        print("Sequente não válido. Contraexemplo: ", r["contraexemplo"])
+    print("Regras aplicadas: ")
+    print(r["regras"])
+    for regra, formula in r["regras"]:
+        print(f"(\t{regra}, {formula})")
 
-			pendentes.extend(alfa)
-			passos[str(atual)] = "Expansão Alpha"
-			
-
-		elif beta:
-			passos[str(atual)] = "Expansão Beta"
-			possiveis_modelos = []
-
-			for alt in beta:	
-				str_ramo = ""
-				str_ramo += stringRamo(alt)
-				str_ramo += stringRamo(pendentes)
-				print(str_ramo, pendentes, alt)
-				novo_ramo = arvore.add_child(str_ramo)
-
-				modelo, passos, aux = verifica_validade(pendentes + alt, valoracao, passos, novo_ramo)
-				possiveis_modelos.append(modelo)
-
-			for modelo in possiveis_modelos:
-				if modelo != None:
-					return (modelo, passos, arvore.root_node())
-
-			return (None, passos, arvore.root_node())
-
-	return (valoracao, passos, arvore.root_node())
-
-def verify_valid(expression):
-    return verifica_validade([(expression, False)], dict(), dict(), ListTree().add_child(', '.join(str(expression))))
 
 ## TREES
 class Tree:
-    def __init__(self, children=[], value=None, parent=None):
+    def __init__(self, children=None, value=None, parent=None):
         self.value = value
         self.parent_node = parent
-        self.list_child = children
+        self.list_child = []
 
         if children is not None:
             for child in children:
@@ -256,20 +252,20 @@ class Tree:
         return PredicateGraph(self.descendants(), edge_relation)
 #
 class ListTree(Tree):
-	def __init__(self, children=None, value=None, parent=None):
-		self.child_list = []
-		Tree.__init__(self, children, value, parent)
-	def children(self):
-		return self.child_list
-	def __getitem__(self, index):
-		return self.child_list[index]
-	#
-	
-	def add_child_node(self, child):
-		self.child_list.append(child)
-	def remove_child_node(self, child):
-		if child not in self.children(): raise ValueError('child not found')
-		self.child_list.remove(child)
+    def __init__(self, children=None, value=None, parent=None):
+        self.child_list = []
+        Tree.__init__(self, children, value, parent)
+    def children(self):
+        return self.child_list
+    def __getitem__(self, index):
+        return self.child_list[index]
+    #
+
+    def add_child_node(self, child):
+        self.child_list.append(child)
+    def remove_child_node(self, child):
+        if child not in self.children(): raise ValueError('child not found')
+        self.child_list.remove(child)
 #
 
 
@@ -278,269 +274,269 @@ class ListTree(Tree):
 # quantifier: "there exists a unique ..."
 # e.g. exactly_one( n*n == 9 for n in range(1,10) ) is True
 def exactly_one(S):
-	return len([ s for s in S if s ]) == 1
+    return len([ s for s in S if s ]) == 1
 #
 
 def in_order(L):
-	return all( L[i] <= L[i+1] for i in range(0, len(L)-1) )
+    return all( L[i] <= L[i+1] for i in range(0, len(L)-1) )
 #
 
 def set_to_predicate(S):
-	return lambda x: x in S
+    return lambda x: x in S
 #
 
 def truth_table_rows(variables):
-	if len(variables) == 0:
-		return [dict()]
-	variables = list(variables)
-	P = variables[0]
-	R = truth_table_rows(variables[1:])
-	add_P = lambda v: [ dict([(P,v)] + list(r.items())) for r in R ]
-	return add_P(True) + add_P(False)
+    if len(variables) == 0:
+        return [dict()]
+    variables = list(variables)
+    P = variables[0]
+    R = truth_table_rows(variables[1:])
+    add_P = lambda v: [ dict([(P,v)] + list(r.items())) for r in R ]
+    return add_P(True) + add_P(False)
 #
 
 def vars(*var_names):
-        return ( Variable(name) for name in var_names )
+    return ( Variable(name) for name in var_names )
 #
 
 def cast_to_proposition(p):
-	if isinstance(p, Proposition):
-		return p
-	elif isinstance(p, str):
-		return Variable(p)
-	elif isinstance(p, bool):
-		return Constant(p)
-	else:
-		raise ValueError()
+    if isinstance(p, Proposition):
+        return p
+    elif isinstance(p, str):
+        return Variable(p)
+    elif isinstance(p, bool):
+        return Constant(p)
+    else:
+        raise ValueError()
 #
 
 class Proposition:
-	symbol = ''
-	empty_str = ''
-	def __init__(self, *children):
-		self.children = [ cast_to_proposition(c) for c in children ]
-	def __str__(self):
-		if len(self.children) == 0: return self.empty_str
-		return self.symbol.join( c.child_str() for c in self.children )
-	def evaluate(self, **assignments):
+    symbol = ''
+    empty_str = ''
+    def __init__(self, *children):
+        self.children = [ cast_to_proposition(c) for c in children ]
+    def __str__(self):
+        if len(self.children) == 0: return self.empty_str
+        return self.symbol.join( c.child_str() for c in self.children )
+    def evaluate(self, **assignments):
         # TODO: Implementar valoração
-		raise NotImplementedError()
-	def variables(self):
-		if len(self.children) == 0:
-			return frozenset()
-		else:
-			return frozenset.union(*[ c.variables() for c in self.children ])
-	def __repr__(self):
-		return 'Proposition( {0} )'.format(self)
-	def child_str(self):
-		return ('{0}' if isinstance(self, (Constant,Variable,Not)) else '({0})').format(self)
-	def print_truth_table(self):
-		vars = sorted( self.variables() )
-		rows = truth_table_rows(vars)
-		
-		formula_header = str(self)
-		formula_len = max(5,len(formula_header))
-		header = '{0}  #  {1: ^{2}}'.format('  '.join('{0: ^5}'.format(v) for v in vars), formula_header, formula_len)
-		print(header)
-		print('#'*len(header))
-		
-		for r in rows:
-			var_cols = '  '.join('{0: ^{1}}'.format(str(r[v]), max(5,len(v))) for v in vars)
-			result_col = '{0: ^{1}}'.format(str(self.evaluate(**r)), formula_len)
-			print('{0}  #  {1}'.format(var_cols, result_col)) 
-		print()
-	#mudar para str(self) depois
-	def to_tree(self):
-		result = ListTree(value=str(self))
-		for c in self.children:
-			result.add_child_node(c.to_tree())
-		return result
-	def __and__(self,other):
-		v = self.children if isinstance(self,And) else [self]
-		w = other.children if isinstance(other,And) else [other]
-		return And(*(v+w))
-	def __rand__(self,other):
-		return cast_to_proposition(other) & self
-	def __or__(self,other):
-		v = self.children if isinstance(self,Or) else [self]
-		w = other.children if isinstance(other,Or) else [other]
-		return Or(*(v+w))
-	def __ror__(self,other):
-		return cast_to_proposition(other) | self
-	def __invert__(self):
-		return Not(self)
-	def __rshift__(self,other):
-		return Implies(self,other)
-	def __rrshift__(self,other):
-		return Implies(other,self)
-	def __lshift__(self,other):
-		return ImpliedBy(self,other)
-	def __rlshift__(self,other):
-		return ImpliedBy(other,self)
-	def disjunction(self,other):
-		return self | other
-	def conjunction(self,other):
-		return self & other
-	def negation(self):
-		return ~self
-	def implies(self,other):
-		return self >> other
-	def impliedby(self,other):
-		return self << other
-	def iff(self,other):
-		return Iff(self,other)
-	def is_tautology(self):
-		return all( self.evaluate(**r) for r in truth_table_rows(self.variables()) )
-	def is_contradiction(self):
-		return all( not self.evaluate(**r) for r in truth_table_rows(self.variables()) )
-	def is_contingency(self):
-		return not self.is_tautology() and not self.is_contradiction()
-	def __eq__(self,other):
-		return self.is_equivalent(other)
-	def is_equivalent(self,other):
-		other = cast_to_proposition(other)
-		return all( self.evaluate(**r) == other.evaluate(**r) for r in truth_table_rows(self.variables() | other.variables()) )
-	def is_identical(self,other):
-		return self.__class__ == other.__class__ \
-			and len(self.children) == len(other.children) \
-			and all( c.is_identical(d) for (c,d) in zip(self.children,other.children) )
-	def substitute(self, e1, e2):
-		if self.is_identical(e1):
-			return e2
-		else:
-			return self.__class__( *[c.substitute(e1,e2) for c in self.children] )
+        raise NotImplementedError()
+    def variables(self):
+        if len(self.children) == 0:
+            return frozenset()
+        else:
+            return frozenset.union(*[ c.variables() for c in self.children ])
+    def __repr__(self):
+        return 'Proposition( {0} )'.format(self)
+    def child_str(self):
+        return ('{0}' if isinstance(self, (Constant,Variable,Not)) else '({0})').format(self)
+    def print_truth_table(self):
+        vars = sorted( self.variables() )
+        rows = truth_table_rows(vars)
+
+        formula_header = str(self)
+        formula_len = max(5,len(formula_header))
+        header = '{0}  #  {1: ^{2}}'.format('  '.join('{0: ^5}'.format(v) for v in vars), formula_header, formula_len)
+        print(header)
+        print('#'*len(header))
+
+        for r in rows:
+            var_cols = '  '.join('{0: ^{1}}'.format(str(r[v]), max(5,len(v))) for v in vars)
+            result_col = '{0: ^{1}}'.format(str(self.evaluate(**r)), formula_len)
+            print('{0}  #  {1}'.format(var_cols, result_col)) 
+        print()
+    #mudar para str(self) depois
+    def to_tree(self):
+        result = ListTree(value=str(self))
+        for c in self.children:
+            result.add_child_node(c.to_tree())
+        return result
+    def __and__(self,other):
+        v = self.children if isinstance(self,And) else [self]
+        w = other.children if isinstance(other,And) else [other]
+        return And(*(v+w))
+    def __rand__(self,other):
+        return cast_to_proposition(other) & self
+    def __or__(self,other):
+        v = self.children if isinstance(self,Or) else [self]
+        w = other.children if isinstance(other,Or) else [other]
+        return Or(*(v+w))
+    def __ror__(self,other):
+        return cast_to_proposition(other) | self
+    def __invert__(self):
+        return Not(self)
+    def __rshift__(self,other):
+        return Implies(self,other)
+    def __rrshift__(self,other):
+        return Implies(other,self)
+    def __lshift__(self,other):
+        return ImpliedBy(self,other)
+    def __rlshift__(self,other):
+        return ImpliedBy(other,self)
+    def disjunction(self,other):
+        return self | other
+    def conjunction(self,other):
+        return self & other
+    def negation(self):
+        return ~self
+    def implies(self,other):
+        return self >> other
+    def impliedby(self,other):
+        return self << other
+    def iff(self,other):
+        return Iff(self,other)
+    def is_tautology(self):
+        return all( self.evaluate(**r) for r in truth_table_rows(self.variables()) )
+    def is_contradiction(self):
+        return all( not self.evaluate(**r) for r in truth_table_rows(self.variables()) )
+    def is_contingency(self):
+        return not self.is_tautology() and not self.is_contradiction()
+    def __eq__(self,other):
+        return self.is_equivalent(other)
+    def is_equivalent(self,other):
+        other = cast_to_proposition(other)
+        return all( self.evaluate(**r) == other.evaluate(**r) for r in truth_table_rows(self.variables() | other.variables()) )
+    def is_identical(self,other):
+        return self.__class__ == other.__class__ \
+                and len(self.children) == len(other.children) \
+                and all( c.is_identical(d) for (c,d) in zip(self.children,other.children) )
+    def substitute(self, e1, e2):
+        if self.is_identical(e1):
+            return e2
+        else:
+            return self.__class__( *[c.substitute(e1,e2) for c in self.children] )
 #
 
 class Constant(Proposition):
-	def __init__(self,value):
-		self.children = []
-		self.value = bool(value)
-	def substitute(self, e1, e2):
-		return Constant(self.value)
-	def __str__(self):
-		return str(self.value)
-	def evaluate(self, **assignments):
-		return self.value
-	def is_identical(self,other):
-		return isinstance(other, Constant) and self.value == other.value
+    def __init__(self,value):
+        self.children = []
+        self.value = bool(value)
+    def substitute(self, e1, e2):
+        return Constant(self.value)
+    def __str__(self):
+        return str(self.value)
+    def evaluate(self, **assignments):
+        return self.value
+    def is_identical(self,other):
+        return isinstance(other, Constant) and self.value == other.value
 #
 
 class Variable(Proposition):
-	def __init__(self,name):
-		self.children = []
-		self.name = name
-	def substitute(self, e1, e2):
-		if self.is_identical(e1):
-			return e2
-		else:
-			return Variable(self.name)
-	def variables(self):
-		return frozenset({ self.name })
-	def __str__(self):
-		return self.name
-	def evaluate(self, **assignments):
-		return assignments[self.name]
-	def is_identical(self,other):
-		return isinstance(other, Variable) and self.name == other.name
+    def __init__(self,name):
+        self.children = []
+        self.name = name
+    def substitute(self, e1, e2):
+        if self.is_identical(e1):
+            return e2
+        else:
+            return Variable(self.name)
+    def variables(self):
+        return frozenset({ self.name })
+    def __str__(self):
+        return self.name
+    def evaluate(self, **assignments):
+        return assignments[self.name]
+    def is_identical(self,other):
+        return isinstance(other, Variable) and self.name == other.name
 #
 
 class Not(Proposition):
-	def __init__(self,child):
-		Proposition.__init__(self,child)
-	def __str__(self):
-		return u'¬{0}'.format(self.children[0].child_str()) 
-	def evaluate(self, **assignments):
-		return not self.children[0].evaluate(**assignments)
+    def __init__(self,child):
+        Proposition.__init__(self,child)
+    def __str__(self):
+        return u'¬{0}'.format(self.children[0].child_str()) 
+    def evaluate(self, **assignments):
+        return not self.children[0].evaluate(**assignments)
 #
 
 class And(Proposition):
-	symbol = ' ^ '
-	empty_str = 'True'
-	def evaluate(self, **assignments):
-		return all( child.evaluate(**assignments) for child in self.children )
+    symbol = ' ^ '
+    empty_str = 'True'
+    def evaluate(self, **assignments):
+        return all( child.evaluate(**assignments) for child in self.children )
 #
 
 class Or(Proposition):
-	symbol = ' v '
-	empty_str = 'False'
-	def evaluate(self, **assignments):
-		return any( child.evaluate(**assignments) for child in self.children )
+    symbol = ' v '
+    empty_str = 'False'
+    def evaluate(self, **assignments):
+        return any( child.evaluate(**assignments) for child in self.children )
 #
 
 class Implies(Proposition):
-	symbol = ' => '
-	def __init__(self,child1,child2):
-		Proposition.__init__(self,child1,child2)
-	def evaluate(self, **assignments):
-		if self.children[0].evaluate(**assignments):
-			return self.children[1].evaluate(**assignments)
-		else:
-			return True
+    symbol = ' => '
+    def __init__(self,child1,child2):
+        Proposition.__init__(self,child1,child2)
+    def evaluate(self, **assignments):
+        if self.children[0].evaluate(**assignments):
+            return self.children[1].evaluate(**assignments)
+        else:
+            return True
 #
 
 class ImpliedBy(Proposition):
-	symbol = ' <= '
-	def __init__(self,child1,child2):
-		Proposition.__init__(self,child1,child2)
-	def evaluate(self, **assignments):
-		if self.children[1].evaluate(**assignments):
-			return self.children[0].evaluate(**assignments)
-		else:
-			return True
+    symbol = ' <= '
+    def __init__(self,child1,child2):
+        Proposition.__init__(self,child1,child2)
+    def evaluate(self, **assignments):
+        if self.children[1].evaluate(**assignments):
+            return self.children[0].evaluate(**assignments)
+        else:
+            return True
 #
 
 class Iff(Proposition):
-	symbol = ' <=> '
-	def __init__(self,child1,child2):
-		Proposition.__init__(self,child1,child2)
-	def evaluate(self, **assignments):
-		return self.children[0].evaluate(**assignments) == self.children[1].evaluate(**assignments)
+    symbol = ' <=> '
+    def __init__(self,child1,child2):
+        Proposition.__init__(self,child1,child2)
+    def evaluate(self, **assignments):
+        return self.children[0].evaluate(**assignments) == self.children[1].evaluate(**assignments)
 #
 
 class ArgumentForm:
-	def __init__(self, *premises, conclusion):
-		self.premises = [ cast_to_proposition(c) for c in premises ]
-		self.conclusion = cast_to_proposition(conclusion)
-	def variables(self):
-		return frozenset.union(self.conclusion.variables(), *[ c.variables() for c in self.premises ])
-	def __repr__(self):
-		return 'ArgumentForm( {0} )'.format(self)
-	def __str__(self):
-		return ((', '.join(str(c) for c in self.premises) + ', ') if self.premises else '') + 'conclusion = ' + str(self.conclusion)
-	def print_truth_table(self):
-		vars = sorted( self.variables() )
-		rows = truth_table_rows(vars)
-		
-		var_strings = [ '{0: ^5}'.format(v) for v in vars ]
-		premise_strings = [ '{0: ^6}'.format(str(c)) for c in self.premises ]
-		conclusion_string = '{0: ^10}'.format(str(self.conclusion))
-		vars_header = '  '.join(var_strings)
-		premises_header = '{0: ^8}'.format('   '.join(premise_strings))
-		print('{0}  #  {1: ^{2}}  #  {3: ^{4}}'.format(' '*len(vars_header), 'premises', len(premises_header), 'conclusion', len(conclusion_string)))
-		header = '{0}  #  {1: ^8}  #  {2}'.format(vars_header, premises_header, conclusion_string)
-		print(header)
-		print('#'*len(header))
-		
-		for r in rows:
-			premise_values = [ c.evaluate(**r) for c in self.premises ]
-			conclusion_value = self.conclusion.evaluate(**r)
-			star = '*' if all( v for v in premise_values ) else ''
-			var_cols = '  '.join( '{0: ^{1}}'.format(str(r[v]), len(k)) for (k,v) in zip(var_strings, vars) )
-			premise_cols = '   '.join( '{0: ^{1}}'.format(str(v)+star, len(k)) for (k,v) in zip(premise_strings, premise_values) )
-			conclusion_col = '{0: ^{1}}'.format(str(conclusion_value)+star, len(conclusion_string))
-			print('{0}  #  {1: ^8}  #  {2}'.format(var_cols, premise_cols, conclusion_col))
-		print()
-	def is_valid_truth_table(self): #adapted by acvm
-		vars = (frozenset.union(*[ c.variables() for c in self.premises ]) if self.premises else frozenset()) | self.conclusion.variables()
-		return all( self.conclusion.evaluate(**r) for r in truth_table_rows(vars) if all( c.evaluate(**r) for c in self.premises ) )
-	def substitute(self, e1, e2):
-		return ArgumentForm( *[ c.substitute(e1,e2) for c in self.premises ], conclusion = self.conclusion.substitute(e1,e2) )
+    def __init__(self, *premises, conclusion):
+        self.premises = [ cast_to_proposition(c) for c in premises ]
+        self.conclusion = cast_to_proposition(conclusion)
+    def variables(self):
+        return frozenset.union(self.conclusion.variables(), *[ c.variables() for c in self.premises ])
+    def __repr__(self):
+        return 'ArgumentForm( {0} )'.format(self)
+    def __str__(self):
+        return ((', '.join(str(c) for c in self.premises) + ', ') if self.premises else '') + 'conclusion = ' + str(self.conclusion)
+    def print_truth_table(self):
+        vars = sorted( self.variables() )
+        rows = truth_table_rows(vars)
+
+        var_strings = [ '{0: ^5}'.format(v) for v in vars ]
+        premise_strings = [ '{0: ^6}'.format(str(c)) for c in self.premises ]
+        conclusion_string = '{0: ^10}'.format(str(self.conclusion))
+        vars_header = '  '.join(var_strings)
+        premises_header = '{0: ^8}'.format('   '.join(premise_strings))
+        print('{0}  #  {1: ^{2}}  #  {3: ^{4}}'.format(' '*len(vars_header), 'premises', len(premises_header), 'conclusion', len(conclusion_string)))
+        header = '{0}  #  {1: ^8}  #  {2}'.format(vars_header, premises_header, conclusion_string)
+        print(header)
+        print('#'*len(header))
+
+        for r in rows:
+            premise_values = [ c.evaluate(**r) for c in self.premises ]
+            conclusion_value = self.conclusion.evaluate(**r)
+            star = '*' if all( v for v in premise_values ) else ''
+            var_cols = '  '.join( '{0: ^{1}}'.format(str(r[v]), len(k)) for (k,v) in zip(var_strings, vars) )
+            premise_cols = '   '.join( '{0: ^{1}}'.format(str(v)+star, len(k)) for (k,v) in zip(premise_strings, premise_values) )
+            conclusion_col = '{0: ^{1}}'.format(str(conclusion_value)+star, len(conclusion_string))
+            print('{0}  #  {1: ^8}  #  {2}'.format(var_cols, premise_cols, conclusion_col))
+        print()
+    def is_valid_truth_table(self): #adapted by acvm
+        vars = (frozenset.union(*[ c.variables() for c in self.premises ]) if self.premises else frozenset()) | self.conclusion.variables()
+        return all( self.conclusion.evaluate(**r) for r in truth_table_rows(vars) if all( c.evaluate(**r) for c in self.premises ) )
+    def substitute(self, e1, e2):
+        return ArgumentForm( *[ c.substitute(e1,e2) for c in self.premises ], conclusion = self.conclusion.substitute(e1,e2) )
 #
 
 def get_nodes(formula):
-  nodes = [formula]
-  if (len(formula.children)>0):
-    nodes.extend(get_nodes(formula.children[0]))
-  if (len(formula.children)>1):
-    nodes.extend(get_nodes(formula.children[1]))
-  return nodes
+    nodes = [formula]
+    if (len(formula.children)>0):
+        nodes.extend(get_nodes(formula.children[0]))
+    if (len(formula.children)>1):
+        nodes.extend(get_nodes(formula.children[1]))
+    return nodes
