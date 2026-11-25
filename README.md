@@ -13,7 +13,7 @@ from code_base_EP1 import *
 
 P, Q = vars('P', 'Q') # define as variáveis
 
-mostra_resultado(verificar_sequente([P >> Q, P], Q)) 'True', sequente válido
+mostra_resultado(verificar_sequente([P >> Q, P], Q)) # 'True', sequente válido
 ```
 
 ## Testando
