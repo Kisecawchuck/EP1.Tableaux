@@ -1,36 +1,55 @@
-from code_base_EP1 import verify_valid, vars, Iff
+from code_base_EP1 import *
 import unittest
 
 P, Q, R = vars('P', 'Q', 'R')
 
 class TestValidade(unittest.TestCase):
-    def test_validos(self):
-        test_input = (P >> Q) >> (~P | Q)
-        expected_output = None
-        actual_output = verify_valid(test_input)
-        self.assertEqual(expected_output, actual_output)
+    def test_modus_ponens(self):
+        test_input = ArgumentForm(
+                P, P >> Q,    #premises
+                conclusion = Q
+                )
+        expected_output = True # expressão é válida
+        actual_output = verificar_sequente(test_input.premises, test_input.conclusion)
+        self.assertEqual(expected_output, actual_output["valido"])
 
-        test_input = Iff(P >> Q, ~P | Q)
-        expected_output = None
-        actual_output = verify_valid(test_input)
-        self.assertEqual(expected_output, actual_output)
+    def test_modus_tollens(self):
+        test_input = ArgumentForm(
+                P >> Q, ~Q,   #premises
+                conclusion = ~P
+                )
+        expected_output = True
+        actual_output = verificar_sequente(test_input.premises, test_input.conclusion)
+        self.assertEqual(expected_output, actual_output["valido"])
 
-    def test_satisfazivel(self):
-        test_input = (P | Q)
-        expected_output = {'P': False, 'Q': False}
-        actual_output = verify_valid(test_input)
-        self.assertEqual(expected_output, actual_output)
+    def test_disjunctive_syllogism(self):
+        test_input = ArgumentForm(
+                P | Q, ~P,    #premises
+                conclusion = Q
+                )
+        expected_output = True
+        actual_output = verificar_sequente(test_input.premises, test_input.conclusion)
+        self.assertEqual(expected_output, actual_output["valido"])
 
-        test_input = P >> Q >> R
-        expected_output = {'P': False, 'Q': True, 'R': False}
-        actual_output = verify_valid(test_input)
-        self.assertEqual(expected_output, actual_output)
+    def test_hypothetical_syllogism(self):
+        test_input = ArgumentForm(
+                P >> Q, Q >> R,   #premises
+                conclusion = R
+                )
+        expected_output = False
+        actual_output = verificar_sequente(test_input.premises, test_input.conclusion)
+        self.assertEqual(expected_output, actual_output["valido"])
 
-    def test_insatisfazivel(self):
-        test_input = (P & ~P)
-        expected_output = {'P': False}
-        actual_output = verify_valid(test_input)
-        self.assertEqual(expected_output, actual_output)
+    def test_non_sequitur(self):
+        test_input = ArgumentForm(
+                P,        #premises
+                conclusion = Q
+                )
+        expected_output = False
+        actual_output = verificar_sequente(test_input.premises, test_input.conclusion)
+        self.assertEqual(expected_output, actual_output["valido"])
+
+
 
 if __name__ == '__main__':
     unittest.main()
